@@ -4,13 +4,10 @@ import bcrypt
 from datetime import datetime
 from psycopg2 import Error
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+from database import connect_to_database
 try:
     # Подключение к существующей базе данных
-    connection = psycopg2.connect(user="postgres",
-                                  password="1111",
-                                  host="127.0.0.1",
-                                  port="5432")
-    connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+    connection = connect_to_database()
     # Курсор для выполнения операций с базой данных
     cur = connection.cursor()
     # Очистка таблицы "Booking"
@@ -21,28 +18,6 @@ try:
     cur.execute("""
         TRUNCATE TABLE "User" RESTART IDENTITY CASCADE
     """)
-    # Создание таблицы User
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS "User" (
-            id serial PRIMARY KEY,
-            username text NOT NULL,
-            password text NOT NULL,
-            created_at timestamp DEFAULT current_timestamp,
-            updated_at timestamp DEFAULT current_timestamp
-        )
-    """)
-
-    # Создание таблицы Booking
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS "Booking" (
-            id serial PRIMARY KEY,
-            user_id integer REFERENCES "User" (id),
-            start_time text NOT NULL,
-            end_time text NOT NULL,
-            comment text
-        )
-    """)
-
     # Хешируем пароль пользователя с использованием bcrypt
     password = "sample_password".encode('utf-8')  # Преобразовываем пароль в байты
     hashed_password = bcrypt.hashpw(password, bcrypt.gensalt())
