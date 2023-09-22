@@ -21,15 +21,14 @@ try:
     cur.execute("""
         TRUNCATE TABLE "User" RESTART IDENTITY CASCADE
     """)
-    '''# Хешируем пароль пользователя с использованием bcrypt
-    password = "sample_password".encode('utf-8')  # Преобразовываем пароль в байты
-    hashed_password = bcrypt.hashpw(password, bcrypt.gensalt())'''
 
 
     # Модели данных для API
     class User(BaseModel):
         username: str
         password: str
+        created_at: datetime
+        updated_at: datetime
 
 
     class Booking(BaseModel):
@@ -43,9 +42,15 @@ try:
     @app.post("/users/", response_model=User)
     def create_user(user: User):
         try:
+            # Генерируем соль для bcrypt (обычно соль хранится вместе с зашифрованным паролем)
+            salt = bcrypt.gensalt()
+
+            # Хешируем пароль с использованием соли
+            hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), salt)
+
             cur.execute(
                 "INSERT INTO \"User\" (username, password) VALUES (%s, %s) RETURNING id",
-                (user.username, user.password)
+                (user.username, hashed_password.decode('utf-8'))
             )
             user_id = cur.fetchone()[0]
             connection.commit()
@@ -62,7 +67,9 @@ try:
             cur.execute("SELECT * FROM \"User\" WHERE id = %s", (user_id,))
             user_data = cur.fetchone()
             if user_data:
-                user = User(username=user_data[1], password=user_data[2])
+                user = User(username=user_data[1], password=user_data[2],
+                                created_at=user_data[3].strftime("%Y-%m-%dT%H:%M:%S"),
+                                updated_at=user_data[4].strftime("%Y-%m-%dT%H:%M:%S"))
                 return {"user_id": user_id, **user.dict()}
             else:
                 raise HTTPException(status_code=404, detail="User not found")
@@ -86,9 +93,18 @@ try:
     @app.put("/users/{user_id}", response_model=User)
     def update_user(user_id: int, user: User):
         try:
+            # Получите текущее время
+            current_time = datetime.utcnow()
+
+            # Генерируем соль для bcrypt (обычно соль хранится вместе с зашифрованным паролем)
+            salt = bcrypt.gensalt()
+
+            # Хешируем пароль с использованием соли
+            hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), salt)
+
             cur.execute(
-                "UPDATE \"User\" SET username = %s, password = %s WHERE id = %s RETURNING id",
-                (user.username, user.password, user_id)
+                "UPDATE \"User\" SET username = %s, password = %s, updated_at = %s WHERE id = %s RETURNING id",
+                (user.username, hashed_password.decode('utf-8'), current_time, user_id)
             )
             updated_user_id = cur.fetchone()[0]
             connection.commit()
