@@ -94,7 +94,7 @@ try:
     def update_user(user_id: int, user: User):
         try:
             # Получите текущее время
-            current_time = datetime.utcnow()
+            current_time = datetime.now()
 
             # Генерируем соль для bcrypt (обычно соль хранится вместе с зашифрованным паролем)
             salt = bcrypt.gensalt()
