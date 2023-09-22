@@ -1,7 +1,9 @@
 
 import psycopg2
+import logging
 import bcrypt
 from datetime import datetime
+from sqlalchemy import create_engine, text
 from psycopg2 import Error
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from database import connect_to_database
@@ -13,14 +15,6 @@ try:
     connection = connect_to_database()
     # Курсор для выполнения операций с базой данных
     cur = connection.cursor()
-    # Очистка таблицы "Booking"
-    cur.execute("""
-        TRUNCATE TABLE "Booking" RESTART IDENTITY CASCADE
-    """)
-    # Очистка таблицы "User"
-    cur.execute("""
-        TRUNCATE TABLE "User" RESTART IDENTITY CASCADE
-    """)
 
 
     # Модели данных для API
@@ -38,6 +32,7 @@ try:
         comment: str = None
 
 
+    logger = logging.getLogger(__name__)
     # Создание пользователя
     @app.post("/users/", response_model=User)
     def create_user(user: User):
@@ -57,6 +52,7 @@ try:
             return {"user_id": user_id, **user.dict()}
         except Exception as e:
             connection.rollback()
+            logger.error("Error creating booking: %s", str(e))
             raise HTTPException(status_code=500, detail=f"Failed to create user: {str(e)}")
 
 
@@ -74,6 +70,7 @@ try:
             else:
                 raise HTTPException(status_code=404, detail="User not found")
         except Exception as e:
+            logger.error("Error creating booking: %s", str(e))
             raise HTTPException(status_code=500, detail=f"Failed to retrieve user: {str(e)}")
 
 
@@ -85,6 +82,7 @@ try:
             connection.commit()
             return {"message": "User deleted successfully"}
         except Exception as e:
+            logger.error("Error creating booking: %s", str(e))
             connection.rollback()
             raise HTTPException(status_code=500, detail=f"Failed to delete user: {str(e)}")
 
@@ -110,6 +108,7 @@ try:
             connection.commit()
             return {"user_id": updated_user_id, **user.dict()}
         except Exception as e:
+            logger.error("Error creating booking: %s", str(e))
             connection.rollback()
             raise HTTPException(status_code=500, detail=f"Failed to update user: {str(e)}")
 
@@ -126,11 +125,12 @@ try:
             connection.commit()
             return {"booking_id": booking_id, **booking.dict()}
         except Exception as e:
+            logger.error("Error creating booking: %s", str(e))
             connection.rollback()
             raise HTTPException(status_code=500, detail=f"Failed to create booking: {str(e)}")
 
 
-    # Получение бронирования по ID
+    #Получения списка бронирования
     @app.get("/bookings/{booking_id}", response_model=Booking)
     def read_booking(booking_id: int):
         try:
@@ -147,8 +147,8 @@ try:
             else:
                 raise HTTPException(status_code=404, detail="Booking not found")
         except Exception as e:
+            logger.error("Error creating booking: %s", str(e))
             raise HTTPException(status_code=500, detail=f"Failed to retrieve booking: {str(e)}")
-
 
     # Удаление бронирования по ID
     @app.delete("/bookings/{booking_id}", response_model=dict)
@@ -158,6 +158,7 @@ try:
             connection.commit()
             return {"message": "Booking deleted successfully"}
         except Exception as e:
+            logger.error("Error creating booking: %s", str(e))
             connection.rollback()
             raise HTTPException(status_code=500, detail=f"Failed to delete booking: {str(e)}")
 
@@ -174,6 +175,7 @@ try:
             connection.commit()
             return {"booking_id": updated_booking_id, **booking.dict()}
         except Exception as e:
+            logger.error("Error creating booking: %s", str(e))
             connection.rollback()
             raise HTTPException(status_code=500, detail=f"Failed to update booking: {str(e)}")
 

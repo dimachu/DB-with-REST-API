@@ -12,6 +12,14 @@ def connect_to_database():
         connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         # Курсор для выполнения операций с базой данных
         cur = connection.cursor()
+        # Очистка таблицы "Booking"
+        cur.execute("""
+               DROP TABLE IF EXISTS "Booking"
+           """)
+        # Очистка таблицы "User"
+        cur.execute("""
+               DROP TABLE IF EXISTS "User"
+           """)
         # Создание таблицы User
         cur.execute("""
                 CREATE TABLE IF NOT EXISTS "User" (
@@ -27,7 +35,7 @@ def connect_to_database():
         cur.execute("""
                 CREATE TABLE IF NOT EXISTS "Booking" (
                     id serial PRIMARY KEY,
-                    user_id integer REFERENCES "User" (id),
+                    user_id integer REFERENCES "User" (id) ON DELETE CASCADE,
                     start_time text NOT NULL,
                     end_time text NOT NULL,
                     comment text
