@@ -1,6 +1,7 @@
 
 import psycopg2
 import logging
+from typing import List
 import bcrypt
 from datetime import datetime
 from sqlalchemy import create_engine, text
@@ -33,6 +34,18 @@ try:
 
 
     logger = logging.getLogger(__name__)
+
+
+    # Получение всех существующих Booking
+    def get_all_booking():
+        # SQL-запрос для извлечения всех пользователей
+        cur.execute("SELECT * FROM \"Booking\"")
+
+        # Извлекаем всех пользователей в виде кортежей
+        booking_records = cur.fetchall()
+
+        return booking_records
+
     # Создание пользователя
     @app.post("/users/", response_model=User)
     def create_user(user: User):
@@ -130,7 +143,7 @@ try:
             raise HTTPException(status_code=500, detail=f"Failed to create booking: {str(e)}")
 
 
-    #Получения списка бронирования
+    #Получения бронирования по ID
     @app.get("/bookings/{booking_id}", response_model=Booking)
     def read_booking(booking_id: int):
         try:
@@ -149,6 +162,28 @@ try:
         except Exception as e:
             logger.error("Error creating booking: %s", str(e))
             raise HTTPException(status_code=500, detail=f"Failed to retrieve booking: {str(e)}")
+
+    # Получение всех существующих booking
+    @app.get("/bookings/", response_model=List[Booking])
+    def read_all_bookings():
+        try:
+            bookings_data = get_all_booking()
+            if bookings_data:
+                bookings = []
+                for booking_data in bookings_data:
+                    booking = Booking(
+                        user_id=booking_data[1],
+                        start_time=booking_data[2],
+                        end_time=booking_data[3],
+                        comment=booking_data[4]
+                    )
+                    bookings.append(booking)
+                return bookings
+            else:
+                raise HTTPException(status_code=404, detail="No bookings found")
+        except Exception as e:
+            logger.error("Error retrieving users: %s", str(e))
+            raise HTTPException(status_code=500, detail=f"Failed to retrieve users: {str(e)}")
 
     # Удаление бронирования по ID
     @app.delete("/bookings/{booking_id}", response_model=dict)
